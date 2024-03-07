@@ -1,8 +1,8 @@
 import requests, PySimpleGUI as sg, json
 from bs4 import BeautifulSoup
 
-kas_janomaina = ['ā', 'č', 'ē', 'ģ', 'ī', 'ķ', 'ļ', 'ņ', 'š', 'ū', 'ž', ' ', '.', ',']
-uz_ko_janomaina = ['a', 'c', 'e', 'g', 'i', 'k', 'l', 'n', 's', 'u', 'z', '-', '', '']
+kas_janomaina = ['ā', 'č', 'ē', 'ģ', 'ī', 'ķ', 'ļ', 'ņ', 'š', 'ū', 'ž', ' ', '.', ',', '+']
+uz_ko_janomaina = ['a', 'c', 'e', 'g', 'i', 'k', 'l', 'n', 's', 'u', 'z', '-', '', '', '']
 kategorijas_rimi = {"Augļi":"SH-2-1", "Ogas":"SH-2-1", "Dārzeņi":"SH-2-2"}
 kategorijas = ["Augļi", "Ogas", "Dārzeņi"]
 lst = sg.Combo(kategorijas, enable_events=True, key='-COMBO-', readonly=True)
@@ -28,7 +28,7 @@ def rimi_cena(ko_mekle, kategorija):
     for i in range(0, len(kas_janomaina)):
         nosaukums = nosaukums.replace(kas_janomaina[i], uz_ko_janomaina[i])
     saite = 'https://www.rimi.lv/e-veikals/lv/produkti/augli-un-darzeni/darzeni/'+ str(rez_1['category']) + '/' + nosaukums + '/p/' + str(rez_1['id'])
-    # print(saite)
+    print(saite)
     lapa_2 = requests.get(saite)
     zupa_2 = BeautifulSoup(lapa_2.content, "html.parser")
     rez_2 = str(zupa_2.find("p", {"class":"price-per"}))
