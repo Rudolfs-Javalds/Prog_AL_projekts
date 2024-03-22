@@ -1,5 +1,6 @@
 import requests, PySimpleGUI as sg, json
 from bs4 import BeautifulSoup
+import ast
 
 kas_janomaina = ['ā', 'č', 'ē', 'ģ', 'ī', 'ķ', 'ļ', 'ņ', 'š', 'ū', 'ž', ' ', '.', ',', '+']
 uz_ko_janomaina = ['a', 'c', 'e', 'g', 'i', 'k', 'l', 'n', 's', 'u', 'z', '-', '', '', '']
@@ -46,14 +47,36 @@ def rimi_cena(ko_mekle, kategorija):
 
 def maxima_cena(ko_mekle, kategorija):
     URL = f"https://www.barbora.lv/meklet?order=priceAsc&q={str(ko_mekle).lower()}"
+    # print(URL)
     lapa_1 = requests.get(URL)
     zupa_1 = BeautifulSoup(lapa_1.content, "html.parser")
     # print(zupa_1)
     cik=0
     for n in zupa_1.find_all('script'):
         cik+=1
+        # print(zupa_1)
         if cik==21: # 22. pēc kārtas ir tieši tas info, ko man vajag / pēc kā var turpināt meklēt
+            # print(n)
+            # print(type(n))
+            n = str(n).replace('window.b_productList = ', '')
             print(n)
+            n_dumps = json.dumps(n)
+            n_loads=json.loads(n_dumps)
+            print(n_loads, type(n_loads))
+
+
+            # n_list = str(n).split('{"attributes":{"list":[]}')
+            # print(n_list[1])
+            # for k in n_list:
+            #     if k!=n_list[-1] and k!=n_list[0]:
+            #         k='{' + k.strip(',')
+            #         k=k.rstrip(';')
+            #         teksts = k.replace('false', '"False"').replace('true', '"True"').replace('null', '0').replace('<script>', '').replace('window.b_productList = [', '')
+            #         teksts_load=ast.literal_eval(teksts) #24?
+            #         print(teksts_load, '\n', type(teksts_load), '\n')
+            #         print(teksts_load.keys())
+            #         # if kategorija in teksts_load['category_name_full_path']:
+            #         #     print(teksts_load["picking_actions"])
 
 
 maxima_cena("burk%25C4%2581ni", "dārzeņi")
