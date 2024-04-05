@@ -52,17 +52,27 @@ def maxima_cena(ko_mekle, kategorija):
     zupa_1 = BeautifulSoup(lapa_1.content, "html.parser")
     # print(zupa_1)
     cik=0
+
     for n in zupa_1.find_all('script'):
         cik+=1
         # print(zupa_1)
         if cik==21: # 22. pēc kārtas ir tieši tas info, ko man vajag / pēc kā var turpināt meklēt
             # print(n)
             # print(type(n))
-            n = str(n).replace('window.b_productList = ', '')
-            print(n)
+            n = str(n).replace('window.b_productList = ', '').replace("<script>", '').replace("</script>", '').replace("false", '"false"').replace("true", '"true"').replace("null", '"null"').replace("{[", '{').replace("]}", '}').replace("[}", "[]}").strip()
+            # print(n, '\n', len(n))
             n_dumps = json.dumps(n)
             n_loads=json.loads(n_dumps)
-            print(n_loads, type(n_loads))
+            # teksts_load=ast.literal_eval(n_dumps)
+            # print(type(n_loads))
+            # print(type(teksts_load))
+            f = open('dati copy.json', 'r')
+            # f.write(n.replace(',', ',\n'))
+            # dump = f.read()
+            data = json.load(f)
+            f.close()
+            print(type(data))
+            # print(n_loads[-9],n_loads[-8], n_loads[-7], n_loads[-6],n_loads[-5],n_loads[-4],n_loads[-3],n_loads[-2],n_loads[-1], sep='')
 
 
             # n_list = str(n).split('{"attributes":{"list":[]}')
@@ -72,7 +82,7 @@ def maxima_cena(ko_mekle, kategorija):
             #         k='{' + k.strip(',')
             #         k=k.rstrip(';')
             #         teksts = k.replace('false', '"False"').replace('true', '"True"').replace('null', '0').replace('<script>', '').replace('window.b_productList = [', '')
-            #         teksts_load=ast.literal_eval(teksts) #24?
+            #         teksts_load=ast.literal_eval(teksts) 
             #         print(teksts_load, '\n', type(teksts_load), '\n')
             #         print(teksts_load.keys())
             #         # if kategorija in teksts_load['category_name_full_path']:
