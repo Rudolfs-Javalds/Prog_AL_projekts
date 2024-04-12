@@ -5,7 +5,7 @@ import ast
 kas_janomaina = ['ā', 'č', 'ē', 'ģ', 'ī', 'ķ', 'ļ', 'ņ', 'š', 'ū', 'ž', ' ', '.', ',', '+']
 uz_ko_janomaina = ['a', 'c', 'e', 'g', 'i', 'k', 'l', 'n', 's', 'u', 'z', '-', '', '', '']
 kategorijas_rimi = {"Augļi":"SH-2-1", "Ogas":"SH-2-1", "Dārzeņi":"SH-2-2"}
-kategorijas_maxima = {"Augļi":"Augļi un dārzeņi/Augļi un ogas", "Ogas":";Augļi un dārzeņi/Augļi un ogas", "Dārzeņi":"Augļi un dārzeņi/Dārzeņi"}
+kategorijas_maxima = {"Augļi":"Augļi un dārzeņi/Augļi un ogas", "Ogas":"Augļi un dārzeņi/Augļi un ogas", "Dārzeņi":"Augļi un dārzeņi/Dārzeņi"}
 kategorijas = ["Augļi", "Ogas", "Dārzeņi"]
 lst = sg.Combo(kategorijas, enable_events=True, key='-COMBO-', readonly=True)
 
@@ -50,7 +50,7 @@ def rimi_cena(ko_mekle, kategorija):
 
 def maxima_cena(ko_mekle, kategorija):
     URL = f"https://www.barbora.lv/meklet?order=priceAsc&q={str(ko_mekle).lower()}"
-    print(URL)
+    # print(URL)
     lapa_1 = requests.get(URL)
     zupa_1 = BeautifulSoup(lapa_1.content, "html.parser")
     cik=0
@@ -81,14 +81,25 @@ def maxima_cena(ko_mekle, kategorija):
             f.close()
             # print(type(data))
             for produkts in data:
-                if kategorija.lower() in produkts["category_name_full_path"].lower():
-                    print(produkts)
-                    break
+                if kategorija.lower() in produkts["category_name_full_path"].lower() and "tvaicēti" not in produkts["category_name_full_path"].lower() and "saldēti" not in produkts["category_name_full_path"].lower() and "apstrādāti" not in produkts["category_name_full_path"].lower():
+                    # print(produkts['units'][0]['price'])
+                    # print(produkts)
+                    cena_maxima = float(produkts['units'][0]['price'])
+                    mervien_maxima = produkts['units'][0]['unit']
+                    nosaukums_maxima = str(produkts['title']).lower()
+                    for i in range(0, len(kas_janomaina)):
+                        nosaukums_maxima = nosaukums_maxima.replace(kas_janomaina[i], uz_ko_janomaina[i])
+                    for i in range(1, len(nosaukums_maxima)):
+                        if(nosaukums_maxima[i-1].isdigit() and nosaukums_maxima[i].isalpha):
+                            nosaukums_maxima = f'{nosaukums_maxima[:i-1]}-{nosaukums_maxima[i-1:]}'
+                    saite_maxima = (f"https://www.barbora.lv/produkti/{nosaukums_maxima}")
+                    print(cena_maxima, mervien_maxima, saite_maxima)
+                    return cena_maxima, mervien_maxima, saite_maxima
 
             
 
 
-maxima_cena("burk%25C4%2581ni", "Augļi un dārzeņi/Dārzeņi")
+# maxima_cena("burk%25C4%2581ni", "Augļi un dārzeņi/Dārzeņi")
 window = sg.Window('Projekts', layout)
 while True:
     event, values = window.read()
@@ -98,10 +109,15 @@ while True:
         kategorijas_rimi_id=kategorijas_rimi[values['-COMBO-']]
         kategorijas_maxima_id=kategorijas_maxima[values['-COMBO-']]
         cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
+        cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
+        # print(cena_maxima, mervien_maxima, hipersaite_maxima)
         if cena_rimi == 0:
             window['-OUTPUT_RIMI-'].update(value="Diemžēl šāds produkts nav pieejams")
         else:
             window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi} {mervien_rimi}')
             window['-SAITE_RIMI-'].update(value = hipersaite_rimi)
+            window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima} €/{mervien_maxima}')
+            window['-SAITE_MAXIMA-'].update(value = hipersaite_maxima)
+
 window.close()
 # print(f'{rimi_cena("tomāti", "SH-2-2")} EUR/kg')
