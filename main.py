@@ -2,6 +2,8 @@ import requests, PySimpleGUI as sg, json
 from bs4 import BeautifulSoup
 import ast
 
+# API priekš currency convertor
+
 kas_janomaina = ['ā', 'č', 'ē', 'ģ', 'ī', 'ķ', 'ļ', 'ņ', 'š', 'ū', 'ž', ' ', '.', ',', '+']
 uz_ko_janomaina = ['a', 'c', 'e', 'g', 'i', 'k', 'l', 'n', 's', 'u', 'z', '-', '', '', '']
 kategorijas_rimi = {"Augļi":"SH-2-1", "Ogas":"SH-2-1", "Dārzeņi":"SH-2-2"}
@@ -35,8 +37,8 @@ def rimi_cena(ko_mekle, kategorija):
     nosaukums  = str(rez_1['name']).lower() 
     for i in range(0, len(kas_janomaina)):
         nosaukums = nosaukums.replace(kas_janomaina[i], uz_ko_janomaina[i])
-    saite = 'https://www.rimi.lv/e-veikals/lv/produkti/augli-un-darzeni/darzeni/'+ str(rez_1['category']) + '/' + nosaukums + '/p/' + str(rez_1['id'])
-    # print(saite)
+    saite = 'https://www.rimi.lv/e-veikals/lv/produkti/augli-un-darzeni/darzeni/c/'+ str(rez_1['category']) + '/' + nosaukums + '/p/' + str(rez_1['id'])
+    print(saite)
     lapa_2 = requests.get(saite)
     zupa_2 = BeautifulSoup(lapa_2.content, "html.parser")
     rez_2 = str(zupa_2.find("p", {"class":"price-per"}))
@@ -45,7 +47,7 @@ def rimi_cena(ko_mekle, kategorija):
     try:
         return float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip(), saite
     except:
-        return 0, ""
+        return 0, 'nepastāv', 'nepastāv'
     
 
 def maxima_cena(ko_mekle, kategorija):
@@ -90,8 +92,8 @@ def maxima_cena(ko_mekle, kategorija):
                     for i in range(0, len(kas_janomaina)):
                         nosaukums_maxima = nosaukums_maxima.replace(kas_janomaina[i], uz_ko_janomaina[i])
                     for i in range(1, len(nosaukums_maxima)):
-                        if(nosaukums_maxima[i-1].isdigit() and nosaukums_maxima[i].isalpha):
-                            nosaukums_maxima = f'{nosaukums_maxima[:i-1]}-{nosaukums_maxima[i-1:]}'
+                        if(nosaukums_maxima[i-1].isnumeric() and nosaukums_maxima[i].isalpha()):
+                            nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
                     saite_maxima = (f"https://www.barbora.lv/produkti/{nosaukums_maxima}")
                     print(cena_maxima, mervien_maxima, saite_maxima)
                     return cena_maxima, mervien_maxima, saite_maxima
