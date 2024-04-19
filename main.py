@@ -1,18 +1,24 @@
 import requests, PySimpleGUI as sg, json
 from bs4 import BeautifulSoup
 import ast
+import sqlite3
 
-# API priekš currency convertor
 
 kas_janomaina = ['ā', 'č', 'ē', 'ģ', 'ī', 'ķ', 'ļ', 'ņ', 'š', 'ū', 'ž', ' ', '.', ',', '+']
 uz_ko_janomaina = ['a', 'c', 'e', 'g', 'i', 'k', 'l', 'n', 's', 'u', 'z', '-', '', '', '']
 kategorijas_rimi = {"Augļi":"SH-2-1", "Ogas":"SH-2-1", "Dārzeņi":"SH-2-2"}
 kategorijas_maxima = {"Augļi":"Augļi un dārzeņi/Augļi un ogas", "Ogas":"Augļi un dārzeņi/Augļi un ogas", "Dārzeņi":"Augļi un dārzeņi/Dārzeņi"}
 kategorijas = ["Augļi", "Ogas", "Dārzeņi"]
+valutas = ["EUR", "USD", "GBP", "SEK", "PLN", "NOK", "JPY"]
+valutas_meklesana ={"EUR":"eur", "USD":"tusd", "GBP": "gbp", "SEK":"sek", "PLN":"pln", "NOK":"nok", "JPY":"jpy"}
+valutas_ziimes = {"EUR":'€', "USD":'$',  "GBP":'£', "SEK":'SEK', "PLN":'zł', "NOK":'NOK', "JPY":'¥'}
+valutas_maina = requests.get("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json").json()
+# print(valutas_maina)
 lst = sg.Combo(kategorijas, enable_events=True, key='-COMBO-', readonly=True)
+last_val = sg.Combo(valutas, enable_events=True, key='-COMBO_VALUTA-', readonly=True)
 
 layout = [ [sg.Text("Lūdzu, ievadiet kādu preci meklējat: "), sg.Input(key='-INPUT-', enable_events=True)],
-           [sg.Text("Iezvēlieties šīs preces kategoriju: "), lst],# sg.Combo(kategorijas, key='-COMBO-', enable_events=True, readonly=True)]
+           [sg.Text("Izvēlieties šīs preces kategoriju: "), lst, sg.Text("Izvēlēties kādā valūtā rādīt cenas: "), last_val],# sg.Combo(kategorijas, key='-COMBO-', enable_events=True, readonly=True)]
            [sg.Button("Meklēt")],
            [sg.Text("Lētākā prece Rimi veikalā: "), sg.Text("", key='-OUTPUT_RIMI-')],
            [sg.Text("Lētākā prece Maxima veikalā: "), sg.Text("", key='-OUTPUT_MAXIMA-')],
@@ -45,7 +51,7 @@ def rimi_cena(ko_mekle, kategorija):
     rez_sarakste = rez_2.split('\n')
     # print(rez_sarakste)
     try:
-        return float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip(), saite
+        return float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite
     except:
         return 0, 'nepastāv', 'nepastāv'
     
@@ -110,15 +116,19 @@ while True:
     if event == 'Meklēt':
         kategorijas_rimi_id=kategorijas_rimi[values['-COMBO-']]
         kategorijas_maxima_id=kategorijas_maxima[values['-COMBO-']]
+        # print(values['-COMBO_VALUTA-'], valutas_meklesana[values['-COMBO_VALUTA-']], valutas_maina['eur']['eur'])
+        # valutas_kurss = 1
+        valutas_kurss = float(valutas_maina['eur'][valutas_meklesana[values['-COMBO_VALUTA-']]])
+        valutas_zime = valutas_ziimes[values['-COMBO_VALUTA-']]
         cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
         cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
         # print(cena_maxima, mervien_maxima, hipersaite_maxima)
         if cena_rimi == 0:
             window['-OUTPUT_RIMI-'].update(value="Diemžēl šāds produkts nav pieejams")
         else:
-            window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi} {mervien_rimi}')
+            window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi*valutas_kurss:.2f} {valutas_zime}/{mervien_rimi}')
             window['-SAITE_RIMI-'].update(value = hipersaite_rimi)
-            window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima} €/{mervien_maxima}')
+            window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima*valutas_kurss:.2f} {valutas_zime}/{mervien_maxima}')
             window['-SAITE_MAXIMA-'].update(value = hipersaite_maxima)
 
 window.close()
