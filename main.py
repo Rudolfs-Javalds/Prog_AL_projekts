@@ -13,12 +13,8 @@ valutas = ["EUR", "USD", "GBP", "SEK", "PLN", "NOK", "JPY"]
 valutas_meklesana ={"EUR":"eur", "USD":"tusd", "GBP": "gbp", "SEK":"sek", "PLN":"pln", "NOK":"nok", "JPY":"jpy"}
 valutas_ziimes = {"EUR":'€', "USD":'$',  "GBP":'£', "SEK":'SEK', "PLN":'zł', "NOK":'NOK', "JPY":'¥'}
 valutas_maina = requests.get("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json").json()
-# print(valutas_maina)
 lst = sg.Combo(kategorijas, enable_events=True, key='-COMBO-', readonly=True)
 last_val = sg.Combo(valutas, enable_events=True, key='-COMBO_VALUTA-', readonly=True)
-datu_baze = sqlite3.connect("dati.db")
-kursors=datu_baze.cursor()
-kursors.execute("CREATE TABLE IF NOT EXISTS preces(ID_prece INTEGER UNIQUE auto_increment, veiakls TEXT, prece TEXT, cena TEXT, mervieniba TEXT)")
 
 layout = [ [sg.Text("Lūdzu, ievadiet kādu preci meklējat: "), sg.Input(key='-INPUT-', enable_events=True)],
            [sg.Text("Izvēlieties šīs preces kategoriju: "), lst, sg.Text("Izvēlēties kādā valūtā rādīt cenas: "), last_val],# sg.Combo(kategorijas, key='-COMBO-', enable_events=True, readonly=True)]
@@ -54,9 +50,13 @@ def rimi_cena(ko_mekle, kategorija):
     rez_sarakste = rez_2.split('\n')
     # print(rez_sarakste)
     try:
-        kursors.execute(f"INSERT INTO preces(NULL, rimi, {ko_mekle}, {float(rez_sarakste[1].strip().replace(',', '.'))}, {rez_sarakste[2].strip().split('/')[1]}")
+        # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ('{k}', 'rimi', '{ko_mekle}', '{float(rez_sarakste[1].strip().replace(',', '.'))}', '{rez_sarakste[2].strip().split('/')[1]}');")
+        # print(k)
+        # k=+1
+        print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
         return float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite
     except:
+        # print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
         return 0, 'nepastāv', 'nepastāv'
     
 
@@ -106,35 +106,71 @@ def maxima_cena(ko_mekle, kategorija):
                             nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
                     saite_maxima = (f"https://www.barbora.lv/produkti/{nosaukums_maxima}")
                     print(cena_maxima, mervien_maxima, saite_maxima)
-                    kursors.execute(f"INSERT INTO preces(NULL, maxima, {cena_maxima}, ")
+                    # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ({k}, 'maxima', '{ko_mekle}', '{cena_maxima}', '{mervien_maxima}');")
+                    # print(k)
+                    # k=+1
                     return cena_maxima, mervien_maxima, saite_maxima
 
             
 
 
 # maxima_cena("burk%25C4%2581ni", "Augļi un dārzeņi/Dārzeņi")
-window = sg.Window('Projekts', layout)
-while True:
-    event, values = window.read()
-    if event == sg.WIN_CLOSED:
-        break
-    if event == 'Meklēt':
-        kategorijas_rimi_id=kategorijas_rimi[values['-COMBO-']]
-        kategorijas_maxima_id=kategorijas_maxima[values['-COMBO-']]
-        # print(values['-COMBO_VALUTA-'], valutas_meklesana[values['-COMBO_VALUTA-']], valutas_maina['eur']['eur'])
-        # valutas_kurss = 1
-        valutas_kurss = float(valutas_maina['eur'][valutas_meklesana[values['-COMBO_VALUTA-']]])
-        valutas_zime = valutas_ziimes[values['-COMBO_VALUTA-']]
-        cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
-        cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
-        # print(cena_maxima, mervien_maxima, hipersaite_maxima)
-        window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi*valutas_kurss:.2f} {valutas_zime}/{mervien_rimi}')
-        window['-SAITE_RIMI-'].update(value = hipersaite_rimi)
-        window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima*valutas_kurss:.2f} {valutas_zime}/{mervien_maxima}')
-        window['-SAITE_MAXIMA-'].update(value = hipersaite_maxima)
-        if cena_rimi == 0:
-            window['-OUTPUT_RIMI-'].update(value="Diemžēl šāds produkts nav pieejams")
-            window['-SAITE_RIMI-'].update(value = "")
+def main():
+    savienojums = sqlite3.connect("dati.db")
+    kursors=savienojums.cursor()
+    kursors.execute("CREATE TABLE IF NOT EXISTS maxima(ID_maxima INTEGER PRIMARY KEY UNIQUE, prece TEXT, cena REAL, mervieniba TEXT, hipersaite TEXT)")
+    kursors.execute("CREATE TABLE IF NOT EXISTS rimi(ID_rimi INTEGER PRIMARY KEY UNIQUE, prece TEXT, cena REAL, mervieniba TEXT, hipersaite TEXT)")
+    kursors.execute("SELECT max(ID_maxima) FROM maxima")
+    ID_maxima = kursors.fetchone()[0]
+    kursors.execute("SELECT max(ID_rimi) FROM rimi")
+    ID_rimi = kursors.fetchone()[0]
+    if (ID_maxima == None):
+        ID_maxima = 1
+    else:
+        ID_maxima+=1
+    if (ID_rimi == None):
+        ID_rimi = 1
+    else:
+        ID_rimi+=1
+    kursors.close()
+    window = sg.Window('Projekts', layout)
+    while True:
+        event, values = window.read()
+        if event == sg.WIN_CLOSED:
+            break
+        if event == 'Meklēt':
+            kursors = savienojums.cursor()
+            
+            kategorijas_rimi_id=kategorijas_rimi[values['-COMBO-']]
+            kategorijas_maxima_id=kategorijas_maxima[values['-COMBO-']]
+            # print(values['-COMBO_VALUTA-'], valutas_meklesana[values['-COMBO_VALUTA-']], valutas_maina['eur']['eur'])
+            # valutas_kurss = 1
+            valutas_kurss = float(valutas_maina['eur'][valutas_meklesana[values['-COMBO_VALUTA-']]])
+            valutas_zime = valutas_ziimes[values['-COMBO_VALUTA-']]
+            if kursors.execute("SELECT cena FROM rimi WHERE prece = ?", values['-INPUT-']):
+                cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
+            else:
+                kursors.execute("SELECT ID_rimi,  FROM rimi WHERE prece = ?", values['-INPUT-'])
+            # print(cena_rimi, mervien_rimi, hipersaite_rimi)
+            cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
+            # print(cena_maxima, mervien_maxima, hipersaite_maxima)
+            print(ID_maxima, ID_rimi)
+            kursors.execute("INSERT INTO maxima(ID_prece, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, values['-INPUT-'], cena_maxima, mervien_maxima, hipersaite_maxima))
+            ID_maxima+=1
+            kursors.execute("INSERT INTO rimi(ID_prece, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_rimi, values['-INPUT-'], cena_rimi, mervien_rimi, hipersaite_rimi))
+            ID_rimi+=1
+            savienojums.commit()
+            kursors.close()
+            window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi*valutas_kurss:.2f} {valutas_zime}/{mervien_rimi}')
+            window['-SAITE_RIMI-'].update(value = hipersaite_rimi)
+            window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima*valutas_kurss:.2f} {valutas_zime}/{mervien_maxima}')
+            window['-SAITE_MAXIMA-'].update(value = hipersaite_maxima)
+            if cena_rimi == 0:
+                window['-OUTPUT_RIMI-'].update(value="Diemžēl šāds produkts nav pieejams")
+                window['-SAITE_RIMI-'].update(value = "")
 
-window.close()
+    window.close()
 # print(f'{rimi_cena("tomāti", "SH-2-2")} EUR/kg')
+
+if __name__ == "__main__":
+    main()
