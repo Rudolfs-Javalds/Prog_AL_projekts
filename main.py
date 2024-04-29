@@ -147,18 +147,26 @@ def main():
             # valutas_kurss = 1
             valutas_kurss = float(valutas_maina['eur'][valutas_meklesana[values['-COMBO_VALUTA-']]])
             valutas_zime = valutas_ziimes[values['-COMBO_VALUTA-']]
-            if kursors.execute("SELECT cena FROM rimi WHERE prece = ?", values['-INPUT-']):
+            if kursors.execute("SELECT cena FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
                 cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
+                kursors.execute("INSERT INTO rimi(ID_rimi, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_rimi, str(values['-INPUT-']).lower(), cena_rimi, mervien_rimi, hipersaite_rimi))
+                ID_rimi+=1
             else:
-                kursors.execute("SELECT ID_rimi,  FROM rimi WHERE prece = ?", values['-INPUT-'])
+                # print((values['-INPUT-']))
+                kursors.execute("SELECT cena, mervieniba, hipersaite FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()])
+                cena_rimi, mervien_rimi, hipersaite_rimi = kursors.fetchone()
+
+            if kursors.execute("SELECT cena FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
+                # print("nav maximā")
+                cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
+                kursors.execute("INSERT INTO maxima(ID_maxima, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, str(values['-INPUT-']).lower(), cena_maxima, mervien_maxima, hipersaite_maxima))
+                ID_maxima+=1
+            else:
+                kursors.execute("SELECT cena, mervieniba, hipersaite FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()])
+                cena_maxima, mervien_maxima, hipersaite_maxima = kursors.fetchone()
             # print(cena_rimi, mervien_rimi, hipersaite_rimi)
-            cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
             # print(cena_maxima, mervien_maxima, hipersaite_maxima)
-            print(ID_maxima, ID_rimi)
-            kursors.execute("INSERT INTO maxima(ID_prece, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, values['-INPUT-'], cena_maxima, mervien_maxima, hipersaite_maxima))
-            ID_maxima+=1
-            kursors.execute("INSERT INTO rimi(ID_prece, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_rimi, values['-INPUT-'], cena_rimi, mervien_rimi, hipersaite_rimi))
-            ID_rimi+=1
+            # print(ID_maxima, ID_rimi)
             savienojums.commit()
             kursors.close()
             window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi*valutas_kurss:.2f} {valutas_zime}/{mervien_rimi}')
@@ -170,7 +178,7 @@ def main():
                 window['-SAITE_RIMI-'].update(value = "")
 
     window.close()
-# print(f'{rimi_cena("tomāti", "SH-2-2")} EUR/kg')
+
 
 if __name__ == "__main__":
     main()
