@@ -29,10 +29,14 @@ def rimi_cena(ko_mekle, kategorija):
     lapa_1 = requests.get(URL)
     zupa_1 = BeautifulSoup(lapa_1.content, "html.parser")
     # print(zupa_1.prettify())
+<<<<<<< HEAD
     try:
         rez_1 = json.loads(str(zupa_1.find("div", {"class":"js-product-container card -horizontal-for-mobile"}).get("data-gtm-eec-product"))) #Atrod produkta info
     except:
         return 0, 'N/A', 'nepastāv' 
+=======
+    rez_1 = json.loads(str(zupa_1.find("div", {"class":"js-product-container card -horizontal-for-mobile"}).get("data-gtm-eec-product"))) #Atrod produkta info
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
     # print(str(ko_mekle).lower(), str(rez_1['name']).lower(), (str(ko_mekle).lower() in str(rez_1['name']).lower()))
     while str(ko_mekle).lower() not in str(rez_1['name']).lower(): # Ja tā nosaukumā nav ko meklē
         rez = zupa_1.find_all("div", {"class":"js-product-container card -horizontal-for-mobile"}) # Atrast visus 'div', kuri ir priekš produktiem
@@ -45,9 +49,15 @@ def rimi_cena(ko_mekle, kategorija):
     # tiek pārveidots nosaukums uz mazajiem burtiem, un noņemtas garumzīmes
     nosaukums  = str(rez_1['name']).lower() 
     for i in range(0, len(kas_janomaina)):
+<<<<<<< HEAD
         nosaukums = nosaukums.replace(kas_janomaina[i], uz_ko_janomaina[i]) 
     saite = 'https://www.rimi.lv/e-veikals/lv/produkti/augli-un-darzeni/darzeni/c/'+ str(rez_1['category']) + '/' + nosaukums + '/p/' + str(rez_1['id'])
     # print(saite)
+=======
+        nosaukums = nosaukums.replace(kas_janomaina[i], uz_ko_janomaina[i])
+    saite = 'https://www.rimi.lv/e-veikals/lv/produkti/augli-un-darzeni/darzeni/c/'+ str(rez_1['category']) + '/' + nosaukums + '/p/' + str(rez_1['id'])
+    print(saite)
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
     lapa_2 = requests.get(saite)
     zupa_2 = BeautifulSoup(lapa_2.content, "html.parser")
     # meklē meklējamā produkta lapā cenu par kādu mērvienību
@@ -58,11 +68,19 @@ def rimi_cena(ko_mekle, kategorija):
         # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ('{k}', 'rimi', '{ko_mekle}', '{float(rez_sarakste[1].strip().replace(',', '.'))}', '{rez_sarakste[2].strip().split('/')[1]}');")
         # print(k)
         # k=+1
+<<<<<<< HEAD
         # print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
         return float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite
     except:
         # print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
         return 0, 'N/A', 'nepastāv'
+=======
+        print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
+        return float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite
+    except:
+        # print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
+        return 0, 'nepastāv', 'nepastāv'
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
     
 
 def maxima_cena(ko_mekle, kategorija):
@@ -74,8 +92,12 @@ def maxima_cena(ko_mekle, kategorija):
 
     for n in zupa_1.find_all('script'):
         cik+=1
+<<<<<<< HEAD
         if cik==21: # 22. pēc kārtas ir info par visiem lapā izvietotajiem produktiem
             # iegūtais tiek formatēts, to varētu saglabāt kā .json failu
+=======
+        if cik==21: # 22. pēc kārtas ir tieši tas info, ko man vajag / pēc kā var turpināt meklēt
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
             n = str(n).replace('window.b_productList = ', '').replace("<script>", '').replace("</script>", '').replace("false", '"false"').replace("true", '"true"').replace("null", '"null"').replace("{[", '{').replace("]}", '}').replace("[}", "[]}").strip()
             n=n.replace(',', ',\n')
             with open('dati_maxima.txt', 'w', encoding='utf-8') as txt_f:
@@ -91,19 +113,31 @@ def maxima_cena(ko_mekle, kategorija):
                             # print(linijas[k])
                         if k!=0:
                             json_f.write(linijas[k-1])
+<<<<<<< HEAD
                 # tiek izveodts .json datne, kurā ir visu, kārtojot pēc cenas, pirmajā lapā piedāvāto produktu info
                 with open('dati_maxima.json', 'a', encoding='utf-8') as json_f:
                     json_f.write(linijas[-1].replace(';', ''))
 
+=======
+                with open('dati_maxima.json', 'a', encoding='utf-8') as json_f:
+                    json_f.write(linijas[-1].replace(';', ''))
+                    
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
             f = open('dati_maxima.json', 'r', encoding="utf-8")
             data = json.load(f)
             f.close()
             # print(type(data))
             for produkts in data:
+<<<<<<< HEAD
                 # tiek neņemti vērā visi tvaicētie un saldētie dārzeņi/augļi/ogas, tiek pieņemts, ka meklē tieši svaigus dārzeņus/augļus/ogas
                 if kategorija.lower() in produkts["category_name_full_path"].lower() and "tvaicēti" not in produkts["category_name_full_path"].lower() and "saldēti" not in produkts["category_name_full_path"].lower() and "apstrādāti" not in produkts["category_name_full_path"].lower():
                         # print(produkts['units'][0]['price'])
                         # print(produkts)
+=======
+                if kategorija.lower() in produkts["category_name_full_path"].lower() and "tvaicēti" not in produkts["category_name_full_path"].lower() and "saldēti" not in produkts["category_name_full_path"].lower() and "apstrādāti" not in produkts["category_name_full_path"].lower():
+                    # print(produkts['units'][0]['price'])
+                    # print(produkts)
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
                     cena_maxima = float(produkts['units'][0]['price'])
                     mervien_maxima = produkts['units'][0]['unit']
                     nosaukums_maxima = str(produkts['title']).lower()
@@ -113,10 +147,17 @@ def maxima_cena(ko_mekle, kategorija):
                         if(nosaukums_maxima[i-1].isnumeric() and nosaukums_maxima[i].isalpha()):
                             nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
                     saite_maxima = (f"https://www.barbora.lv/produkti/{nosaukums_maxima}")
+<<<<<<< HEAD
                     # print(cena_maxima, mervien_maxima, saite_maxima)
                         # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ({k}, 'maxima', '{ko_mekle}', '{cena_maxima}', '{mervien_maxima}');")
                         # print(k)
                         # k=+1
+=======
+                    print(cena_maxima, mervien_maxima, saite_maxima)
+                    # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ({k}, 'maxima', '{ko_mekle}', '{cena_maxima}', '{mervien_maxima}');")
+                    # print(k)
+                    # k=+1
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
                     return cena_maxima, mervien_maxima, saite_maxima
 
             
@@ -166,12 +207,16 @@ def main():
 
             if kursors.execute("SELECT cena FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
                 # print("nav maximā")
+<<<<<<< HEAD
                 try:
                     cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
                 except:
                     cena_maxima = 0
                     mervien_maxima = "N/A"
                     hipersaite_maxima = "nepastāv"
+=======
+                cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
                 kursors.execute("INSERT INTO maxima(ID_maxima, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, str(values['-INPUT-']).lower(), cena_maxima, mervien_maxima, hipersaite_maxima))
                 ID_maxima+=1
             else:
@@ -186,6 +231,7 @@ def main():
             window['-SAITE_RIMI-'].update(value = hipersaite_rimi)
             window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima*valutas_kurss:.2f} {valutas_zime}/{mervien_maxima}')
             window['-SAITE_MAXIMA-'].update(value = hipersaite_maxima)
+<<<<<<< HEAD
             if cena_rimi == 0 and cena_maxima == 0:
                 window['-OUTPUT_RIMI-'].update(value="Diemžēl šads produkts nav pieejams vai ievadītie dati nav pareizi")
                 window['-SAITE_RIMI-'].update(value = "")
@@ -197,6 +243,11 @@ def main():
             elif cena_maxima == 0:
                 window['-OUTPUT_MAXIMA-'].update(value="Diemžēl šāds produkts nav pieejams")
                 window['-SAITE_MAXIMA-'].update(value="")
+=======
+            if cena_rimi == 0:
+                window['-OUTPUT_RIMI-'].update(value="Diemžēl šāds produkts nav pieejams")
+                window['-SAITE_RIMI-'].update(value = "")
+>>>>>>> 700dd51a205a10ce0eda39ad994cd56675eddbaf
 
     window.close()
 
