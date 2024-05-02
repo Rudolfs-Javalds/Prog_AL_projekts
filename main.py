@@ -121,11 +121,16 @@ def maxima_cena(ko_mekle, kategorija):
                                 if(nosaukums_maxima[i-1].isalpha() and nosaukums_maxima[i].isnumeric()):
                                     nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
                             saite_maxima = (f"https://www.barbora.lv/produkti/{nosaukums_maxima}")
-                            print(cena_maxima, mervien_maxima, saite_maxima)
-                                # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ({k}, 'maxima', '{ko_mekle}', '{cena_maxima}', '{mervien_maxima}');")
-                                # print(k)
-                                # k=+1
-                            # atrod atsevišķās preces cenu uz kg, ieejot tās hipersaitē
+                            
+                            nosaukums_maxima_list = nosaukums_maxima.split('-')
+                            # nosaka, vai nosaukumā ir svars (vai ir nummurs), ja ir tad izdala ar to, pareizina ar 1000 (cena / cik grami * 1000 grami)
+                            for j in nosaukums_maxima_list:
+                                if j.isnumeric():
+                                    if "g" in nosaukums_maxima_list:
+                                        cena_maxima = float(cena_maxima/float(j)*1000)
+                                        print(cena_maxima)
+                                        mervien_maxima = "kg"
+
                             return cena_maxima, mervien_maxima, saite_maxima
     except:
         return 0, "N/A", "nepastāv"
@@ -179,8 +184,10 @@ def main():
                 # preces meklēšana un ievietošana RIMI datubāzē, ja tā vēl nav tur
                 if kursors.execute("SELECT cena FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
                     cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
-                    kursors.execute("INSERT INTO rimi(ID_rimi, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_rimi, str(values['-INPUT-']).lower(), cena_rimi, mervien_rimi, hipersaite_rimi))
-                    ID_rimi+=1
+                    # ja cena nav nulle, tad neievieto datubāzē
+                    if cena_rimi!=0:
+                        kursors.execute("INSERT INTO rimi(ID_rimi, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_rimi, str(values['-INPUT-']).lower(), cena_rimi, mervien_rimi, hipersaite_rimi))
+                        ID_rimi+=1
                 # ja tomēr tika atrasta, tad paņem datus no datu bāzes
                 else:
                     # print((values['-INPUT-']))
@@ -198,8 +205,9 @@ def main():
                         cena_maxima = 0
                         mervien_maxima = "N/A"
                         hipersaite_maxima = "nepastāv"
-                    kursors.execute("INSERT INTO maxima(ID_maxima, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, str(values['-INPUT-']).lower(), cena_maxima, mervien_maxima, hipersaite_maxima))
-                    ID_maxima+=1
+                    if cena_maxima!=0:
+                        kursors.execute("INSERT INTO maxima(ID_maxima, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, str(values['-INPUT-']).lower(), cena_maxima, mervien_maxima, hipersaite_maxima))
+                        ID_maxima+=1
                 # ja tomēr tika atrasta, tad paņem datus no datu bāzes
                 else:
                     kursors.execute("SELECT cena, mervieniba, hipersaite FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()])
@@ -220,6 +228,7 @@ def main():
                     window['-OUTPUT_MAXIMA-'].update(value="")
                     window['-SAITE_MAXIMA-'].update(value="")
                     sg.popup("Diemžēl šads produkts nav pieejams vai preces nosaukums un/vai kategorija ir nepareiza.")
+                    # Šādā gadījumā tiek izdzēsts šis produkts no datubāzes
                 elif cena_rimi == 0:
                     window['-OUTPUT_RIMI-'].update(value="Diemžēl šāds produkts nav pieejams")
                     window['-SAITE_RIMI-'].update(value = "")
