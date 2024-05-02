@@ -14,14 +14,14 @@ valutas_meklesana ={"EUR":"eur", "USD":"tusd", "GBP": "gbp", "SEK":"sek", "PLN":
 valutas_ziimes = {"EUR":'€', "USD":'$',  "GBP":'£', "SEK":'SEK', "PLN":'zł', "NOK":'NOK', "JPY":'¥'}
 valutas_maina = requests.get("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/eur.json").json()
 lst = sg.Combo(kategorijas, enable_events=True, key='-COMBO-', readonly=True)
-last_val = sg.Combo(valutas, enable_events=True, key='-COMBO_VALUTA-', readonly=True)
+last_val = sg.Combo(valutas, enable_events=True, key='-COMBO_VALUTA-', readonly=True, default_value=valutas[0])
 
 layout = [ [sg.Text("Lūdzu, ievadiet kādu preci meklējat: "), sg.Input(key='-INPUT-', enable_events=True)],
            [sg.Text("Izvēlieties šīs preces kategoriju: "), lst, sg.Text("Izvēlēties kādā valūtā rādīt cenas: "), last_val],# sg.Combo(kategorijas, key='-COMBO-', enable_events=True, readonly=True)]
            [sg.Button("Meklēt")],
            [sg.Text("Lētākā prece Rimi veikalā: "), sg.Text("", key='-OUTPUT_RIMI-')],
-           [sg.Text("Lētākā prece Maxima veikalā: "), sg.Text("", key='-OUTPUT_MAXIMA-')],
            [sg.Text("Hipersaite uz preci Rimi veikalā: "), sg.InputText("", key='-SAITE_RIMI-', enable_events=True, font=("Arial", 11, "underline"), readonly=True)],
+           [sg.Text("Lētākā prece Maxima veikalā: "), sg.Text("", key='-OUTPUT_MAXIMA-')],
            [sg.Text("Hipersaite uz preci Maxima veikalā: "), sg.InputText("", key='-SAITE_MAXIMA-', enable_events=True, font=("Arial", 11, "underline"), readonly=True)]]
 
 def rimi_cena(ko_mekle, kategorija):
@@ -66,61 +66,70 @@ def rimi_cena(ko_mekle, kategorija):
     
 
 def maxima_cena(ko_mekle, kategorija):
-    URL = f"https://www.barbora.lv/meklet?order=priceAsc&q={str(ko_mekle).lower()}"
-    # print(URL)
-    lapa_1 = requests.get(URL)
-    zupa_1 = BeautifulSoup(lapa_1.content, "html.parser")
-    cik=0
+    
+    try:
+        l=0
+        while True:
+            l=l+1
+            URL = f"https://www.barbora.lv/meklet?order=priceAsc&q={str(ko_mekle).lower()}&page={l}"
+            # print(URL)
+            lapa_1 = requests.get(URL)
+            zupa_1 = BeautifulSoup(lapa_1.content, "html.parser")
+            cik=0
 
-    for n in zupa_1.find_all('script'):
-        cik+=1
-        if cik==21: # 22. pēc kārtas ir info par visiem lapā izvietotajiem produktiem
-            # iegūtais tiek formatēts, to varētu saglabāt kā .json failu
-            n = str(n).replace('window.b_productList = ', '').replace("<script>", '').replace("</script>", '').replace("false", '"false"').replace("true", '"true"').replace("null", '"null"').replace("{[", '{').replace("]}", '}').replace("[}", "[]}").strip()
-            n=n.replace(',', ',\n')
-            with open('dati_maxima.txt', 'w', encoding='utf-8') as txt_f:
-                txt_f.write(n)
-            with open('dati_maxima.txt', 'r+', encoding='utf-8') as txt_f:
-                linijas = txt_f.readlines()
-                with open('dati_maxima.json', 'w', encoding='utf-8') as json_f:
-                    for k in range(len(linijas)):
-                        # print (k, linijas)
-                        # print (k, len(linijas))
-                        if k!=0 and (linijas[k][0]!='[' and linijas[k][0]!='{' and linijas[k][0]!='"'):
-                            linijas[k-1]=linijas[k-1].replace('\n', '')
-                            # print(linijas[k])
-                        if k!=0:
-                            json_f.write(linijas[k-1])
-                # tiek izveodts .json datne, kurā ir visu, kārtojot pēc cenas, pirmajā lapā piedāvāto produktu info
-                with open('dati_maxima.json', 'a', encoding='utf-8') as json_f:
-                    json_f.write(linijas[-1].replace(';', ''))
+            for n in zupa_1.find_all('script'):
+                cik+=1
+                if cik==21: # 22. pēc kārtas ir info par visiem lapā izvietotajiem produktiem
+                    # iegūtais tiek formatēts, to varētu saglabāt kā .json failu
+                    n = str(n).replace('window.b_productList = ', '').replace("<script>", '').replace("</script>", '').replace("false", '"false"').replace("true", '"true"').replace("null", '"null"').replace("{[", '{').replace("]}", '}').replace("[}", "[]}").strip()
+                    n=n.replace(',', ',\n')
+                    with open('dati_maxima.txt', 'w', encoding='utf-8') as txt_f:
+                        txt_f.write(n)
+                    with open('dati_maxima.txt', 'r+', encoding='utf-8') as txt_f:
+                        linijas = txt_f.readlines()
+                        with open('dati_maxima.json', 'w', encoding='utf-8') as json_f:
+                            for k in range(len(linijas)):
+                                # print (k, linijas)
+                                # print (k, len(linijas))
+                                if k!=0 and (linijas[k][0]!='[' and linijas[k][0]!='{' and linijas[k][0]!='"'):
+                                    linijas[k-1]=linijas[k-1].replace('\n', '')
+                                    # print(linijas[k])
+                                if k!=0:
+                                    json_f.write(linijas[k-1])
+                        # tiek izveodts .json datne, kurā ir visu, kārtojot pēc cenas, pirmajā lapā piedāvāto produktu info
+                        with open('dati_maxima.json', 'a', encoding='utf-8') as json_f:
+                            json_f.write(linijas[-1].replace(';', ''))
 
-            f = open('dati_maxima.json', 'r', encoding="utf-8")
-            data = json.load(f)
-            f.close()
-            # print(type(data))
-            for produkts in data:
-                # tiek neņemti vērā visi tvaicētie un saldētie dārzeņi/augļi/ogas, tiek pieņemts, ka meklē tieši svaigus dārzeņus/augļus/ogas
-                if kategorija.lower() in produkts["category_name_full_path"].lower() and "tvaicēti" not in produkts["category_name_full_path"].lower() and "saldēti" not in produkts["category_name_full_path"].lower() and "apstrādāti" not in produkts["category_name_full_path"].lower():
-                        # print(produkts['units'][0]['price'])
-                        # print(produkts)
-                    cena_maxima = float(produkts['units'][0]['price'])
-                    mervien_maxima = produkts['units'][0]['unit']
-                    nosaukums_maxima = str(produkts['title']).lower()
-                    for i in range(0, len(kas_janomaina)):
-                        nosaukums_maxima = nosaukums_maxima.replace(kas_janomaina[i], uz_ko_janomaina[i])
-                    for i in range(1, len(nosaukums_maxima)):
-                        if(nosaukums_maxima[i-1].isnumeric() and nosaukums_maxima[i].isalpha()):
-                            nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
-                    for i in range(1, len(nosaukums_maxima)):
-                        if(nosaukums_maxima[i-1].isalpha() and nosaukums_maxima[i].isnumeric()):
-                            nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
-                    saite_maxima = (f"https://www.barbora.lv/produkti/{nosaukums_maxima}")
-                    # print(cena_maxima, mervien_maxima, saite_maxima)
-                        # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ({k}, 'maxima', '{ko_mekle}', '{cena_maxima}', '{mervien_maxima}');")
-                        # print(k)
-                        # k=+1
-                    return cena_maxima, mervien_maxima, saite_maxima
+                    f = open('dati_maxima.json', 'r', encoding="utf-8")
+                    data = json.load(f)
+                    f.close()
+                    # print(type(data))
+                    for produkts in data:
+                        # tiek neņemti vērā visi tvaicētie un saldētie dārzeņi/augļi/ogas, tiek pieņemts, ka meklē tieši svaigus dārzeņus/augļus/ogas
+                        if kategorija.lower() in produkts["category_name_full_path"].lower() and "tvaicēti" not in produkts["category_name_full_path"].lower() and "saldēti" not in produkts["category_name_full_path"].lower() and "apstrādāti" not in produkts["category_name_full_path"].lower():
+                                # print(produkts['units'][0]['price'])
+                                # print(produkts)
+                            cena_maxima = float(produkts['units'][0]['price'])
+                            mervien_maxima = produkts['units'][0]['unit']
+                            nosaukums_maxima = str(produkts['title']).lower()
+                            for i in range(0, len(kas_janomaina)):
+                                nosaukums_maxima = nosaukums_maxima.replace(kas_janomaina[i], uz_ko_janomaina[i])
+                            for i in range(1, len(nosaukums_maxima)):
+                                if(nosaukums_maxima[i-1].isnumeric() and nosaukums_maxima[i].isalpha()):
+                                    nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
+                            for i in range(1, len(nosaukums_maxima)):
+                                if(nosaukums_maxima[i-1].isalpha() and nosaukums_maxima[i].isnumeric()):
+                                    nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
+                            saite_maxima = (f"https://www.barbora.lv/produkti/{nosaukums_maxima}")
+                            print(cena_maxima, mervien_maxima, saite_maxima)
+                                # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ({k}, 'maxima', '{ko_mekle}', '{cena_maxima}', '{mervien_maxima}');")
+                                # print(k)
+                                # k=+1
+                            # atrod atsevišķās preces cenu uz kg, ieejot tās hipersaitē
+                            return cena_maxima, mervien_maxima, saite_maxima
+    except:
+        return 0, "N/A", "nepastāv"
+            
 
             
 
@@ -131,6 +140,7 @@ def main():
     kursors=savienojums.cursor()
     kursors.execute("CREATE TABLE IF NOT EXISTS maxima(ID_maxima INTEGER PRIMARY KEY UNIQUE, prece TEXT, cena REAL, mervieniba TEXT, hipersaite TEXT)")
     kursors.execute("CREATE TABLE IF NOT EXISTS rimi(ID_rimi INTEGER PRIMARY KEY UNIQUE, prece TEXT, cena REAL, mervieniba TEXT, hipersaite TEXT)")
+    # atrod datu bāzes pēdējā ievada ID
     kursors.execute("SELECT max(ID_maxima) FROM maxima")
     ID_maxima = kursors.fetchone()[0]
     kursors.execute("SELECT max(ID_rimi) FROM rimi")
@@ -150,56 +160,72 @@ def main():
         if event == sg.WIN_CLOSED:
             break
         if event == 'Meklēt':
-            kursors = savienojums.cursor()
-            
-            kategorijas_rimi_id=kategorijas_rimi[values['-COMBO-']]
-            kategorijas_maxima_id=kategorijas_maxima[values['-COMBO-']]
-            # print(values['-COMBO_VALUTA-'], valutas_meklesana[values['-COMBO_VALUTA-']], valutas_maina['eur']['eur'])
-            # valutas_kurss = 1
-            valutas_kurss = float(valutas_maina['eur'][valutas_meklesana[values['-COMBO_VALUTA-']]])
-            valutas_zime = valutas_ziimes[values['-COMBO_VALUTA-']]
-            if kursors.execute("SELECT cena FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
-                cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
-                kursors.execute("INSERT INTO rimi(ID_rimi, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_rimi, str(values['-INPUT-']).lower(), cena_rimi, mervien_rimi, hipersaite_rimi))
-                ID_rimi+=1
+            # neļauj meklēt, ja nav ierakstīts preces nosaukums
+            if values['-INPUT-'] == "":
+                sg.popup("Lūdzu, ierakstiet preces nosaukumu!")
+                pass
+            # neļauj meklēt, ja nav izvēlēta preces kategorija
+            elif values['-COMBO-'] == "":
+                sg.popup("Lūdzu, izvēlieties preces kategoriju!")
+                pass
+            # datu meklēšana uz izvade
             else:
-                # print((values['-INPUT-']))
-                kursors.execute("SELECT cena, mervieniba, hipersaite FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()])
-                cena_rimi, mervien_rimi, hipersaite_rimi = kursors.fetchone()
-
-            if kursors.execute("SELECT cena FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
-                # print("nav maximā")
-                try:
-                    cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
-                except:
-                    cena_maxima = 0
-                    mervien_maxima = "N/A"
-                    hipersaite_maxima = "nepastāv"
-                kursors.execute("INSERT INTO maxima(ID_maxima, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, str(values['-INPUT-']).lower(), cena_maxima, mervien_maxima, hipersaite_maxima))
-                ID_maxima+=1
-            else:
-                kursors.execute("SELECT cena, mervieniba, hipersaite FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()])
-                cena_maxima, mervien_maxima, hipersaite_maxima = kursors.fetchone()
-            # print(cena_rimi, mervien_rimi, hipersaite_rimi)
-            # print(cena_maxima, mervien_maxima, hipersaite_maxima)
-            # print(ID_maxima, ID_rimi)
-            savienojums.commit()
-            kursors.close()
-            window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi*valutas_kurss:.2f} {valutas_zime}/{mervien_rimi}')
-            window['-SAITE_RIMI-'].update(value = hipersaite_rimi)
-            window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima*valutas_kurss:.2f} {valutas_zime}/{mervien_maxima}')
-            window['-SAITE_MAXIMA-'].update(value = hipersaite_maxima)
-            if cena_rimi == 0 and cena_maxima == 0:
-                window['-OUTPUT_RIMI-'].update(value="Diemžēl šads produkts nav pieejams vai ievadītie dati nav pareizi")
-                window['-SAITE_RIMI-'].update(value = "")
-                window['-OUTPUT_MAXIMA-'].update(value="Diemžēl šads produkts nav pieejams vai ievadītie dati nav pareizi")
-                window['-SAITE_MAXIMA-'].update(value="")
-            elif cena_rimi == 0:
-                window['-OUTPUT_RIMI-'].update(value="Diemžēl šāds produkts nav pieejams")
-                window['-SAITE_RIMI-'].update(value = "")
-            elif cena_maxima == 0:
-                window['-OUTPUT_MAXIMA-'].update(value="Diemžēl šāds produkts nav pieejams")
-                window['-SAITE_MAXIMA-'].update(value="")
+                kursors = savienojums.cursor()
+                kategorijas_rimi_id=kategorijas_rimi[values['-COMBO-']]
+                kategorijas_maxima_id=kategorijas_maxima[values['-COMBO-']]
+                # print(values['-COMBO_VALUTA-'], valutas_meklesana[values['-COMBO_VALUTA-']], valutas_maina['eur']['eur'])
+                valutas_kurss = float(valutas_maina['eur'][valutas_meklesana[values['-COMBO_VALUTA-']]])
+                valutas_zime = valutas_ziimes[values['-COMBO_VALUTA-']]
+                # preces meklēšana un ievietošana RIMI datubāzē, ja tā vēl nav tur
+                if kursors.execute("SELECT cena FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
+                    cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
+                    kursors.execute("INSERT INTO rimi(ID_rimi, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_rimi, str(values['-INPUT-']).lower(), cena_rimi, mervien_rimi, hipersaite_rimi))
+                    ID_rimi+=1
+                # ja tomēr tika atrasta, tad paņem datus no datu bāzes
+                else:
+                    # print((values['-INPUT-']))
+                    kursors.execute("SELECT cena, mervieniba, hipersaite FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()])
+                    cena_rimi, mervien_rimi, hipersaite_rimi = kursors.fetchone()
+                # preces meklēšana un ievietošana Maxima datubāzē, ja tā vēl nav tur
+                if kursors.execute("SELECT cena FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
+                    # print("nav maxima datubāzē")
+                    try:
+                        cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
+                        # print(cena_maxima, mervien_maxima, hipersaite_maxima)
+                    # Ja no viekala Maxima atgrieza 'None', tātad neatgrieza neko, to arī ievieto iekšā mājaslapā
+                    except:
+                        # print("Maxima atgrieza neko")
+                        cena_maxima = 0
+                        mervien_maxima = "N/A"
+                        hipersaite_maxima = "nepastāv"
+                    kursors.execute("INSERT INTO maxima(ID_maxima, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, str(values['-INPUT-']).lower(), cena_maxima, mervien_maxima, hipersaite_maxima))
+                    ID_maxima+=1
+                # ja tomēr tika atrasta, tad paņem datus no datu bāzes
+                else:
+                    kursors.execute("SELECT cena, mervieniba, hipersaite FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()])
+                    cena_maxima, mervien_maxima, hipersaite_maxima = kursors.fetchone()
+                # print(cena_rimi, mervien_rimi, hipersaite_rimi)
+                # print(cena_maxima, mervien_maxima, hipersaite_maxima)
+                # print(ID_maxima, ID_rimi)
+                savienojums.commit()
+                kursors.close()
+                # datu izvade saskarsnē
+                window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi*valutas_kurss:.2f} {valutas_zime}/{mervien_rimi}')
+                window['-SAITE_RIMI-'].update(value = hipersaite_rimi)
+                window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima*valutas_kurss:.2f} {valutas_zime}/{mervien_maxima}')
+                window['-SAITE_MAXIMA-'].update(value = hipersaite_maxima)
+                if cena_rimi == 0 and cena_maxima == 0:
+                    window['-OUTPUT_RIMI-'].update(value="")
+                    window['-SAITE_RIMI-'].update(value = "")
+                    window['-OUTPUT_MAXIMA-'].update(value="")
+                    window['-SAITE_MAXIMA-'].update(value="")
+                    sg.popup("Diemžēl šads produkts nav pieejams vai preces nosaukums un/vai kategorija ir nepareiza.")
+                elif cena_rimi == 0:
+                    window['-OUTPUT_RIMI-'].update(value="Diemžēl šāds produkts nav pieejams")
+                    window['-SAITE_RIMI-'].update(value = "")
+                elif cena_maxima == 0:
+                    window['-OUTPUT_MAXIMA-'].update(value="Diemžēl šāds produkts nav pieejams")
+                    window['-SAITE_MAXIMA-'].update(value="")
 
     window.close()
 
