@@ -32,7 +32,7 @@ def rimi_cena(ko_mekle, kategorija):
     try:
         rez_1 = json.loads(str(zupa_1.find("div", {"class":"js-product-container card -horizontal-for-mobile"}).get("data-gtm-eec-product"))) #Atrod produkta info
     except:
-        return 0, 'N/A', 'nepastāv'
+        return 0, 'N/A', 'nepastāv' 
     # print(str(ko_mekle).lower(), str(rez_1['name']).lower(), (str(ko_mekle).lower() in str(rez_1['name']).lower()))
     while str(ko_mekle).lower() not in str(rez_1['name']).lower(): # Ja tā nosaukumā nav ko meklē
         rez = zupa_1.find_all("div", {"class":"js-product-container card -horizontal-for-mobile"}) # Atrast visus 'div', kuri ir priekš produktiem
@@ -42,13 +42,15 @@ def rimi_cena(ko_mekle, kategorija):
                 rez_1=json.loads(str(i.get('data-gtm-eec-product'))) # rez_1 ir info par šo produktu
                 break
         break
+    # tiek pārveidots nosaukums uz mazajiem burtiem, un noņemtas garumzīmes
     nosaukums  = str(rez_1['name']).lower() 
     for i in range(0, len(kas_janomaina)):
-        nosaukums = nosaukums.replace(kas_janomaina[i], uz_ko_janomaina[i])
+        nosaukums = nosaukums.replace(kas_janomaina[i], uz_ko_janomaina[i]) 
     saite = 'https://www.rimi.lv/e-veikals/lv/produkti/augli-un-darzeni/darzeni/c/'+ str(rez_1['category']) + '/' + nosaukums + '/p/' + str(rez_1['id'])
-    print(saite)
+    # print(saite)
     lapa_2 = requests.get(saite)
     zupa_2 = BeautifulSoup(lapa_2.content, "html.parser")
+    # meklē meklējamā produkta lapā cenu par kādu mērvienību
     rez_2 = str(zupa_2.find("p", {"class":"price-per"}))
     rez_sarakste = rez_2.split('\n')
     # print(rez_sarakste)
@@ -56,7 +58,7 @@ def rimi_cena(ko_mekle, kategorija):
         # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ('{k}', 'rimi', '{ko_mekle}', '{float(rez_sarakste[1].strip().replace(',', '.'))}', '{rez_sarakste[2].strip().split('/')[1]}');")
         # print(k)
         # k=+1
-        print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
+        # print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
         return float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite
     except:
         # print(float(rez_sarakste[1].strip().replace(',', '.')), rez_sarakste[2].strip().split('/')[1], saite)
@@ -72,7 +74,8 @@ def maxima_cena(ko_mekle, kategorija):
 
     for n in zupa_1.find_all('script'):
         cik+=1
-        if cik==21: # 22. pēc kārtas ir tieši tas info, ko man vajag / pēc kā var turpināt meklēt
+        if cik==21: # 22. pēc kārtas ir info par visiem lapā izvietotajiem produktiem
+            # iegūtais tiek formatēts, to varētu saglabāt kā .json failu
             n = str(n).replace('window.b_productList = ', '').replace("<script>", '').replace("</script>", '').replace("false", '"false"').replace("true", '"true"').replace("null", '"null"').replace("{[", '{').replace("]}", '}').replace("[}", "[]}").strip()
             n=n.replace(',', ',\n')
             with open('dati_maxima.txt', 'w', encoding='utf-8') as txt_f:
@@ -88,14 +91,16 @@ def maxima_cena(ko_mekle, kategorija):
                             # print(linijas[k])
                         if k!=0:
                             json_f.write(linijas[k-1])
+                # tiek izveodts .json datne, kurā ir visu, kārtojot pēc cenas, pirmajā lapā piedāvāto produktu info
                 with open('dati_maxima.json', 'a', encoding='utf-8') as json_f:
                     json_f.write(linijas[-1].replace(';', ''))
-                    
+
             f = open('dati_maxima.json', 'r', encoding="utf-8")
             data = json.load(f)
             f.close()
             # print(type(data))
             for produkts in data:
+                # tiek neņemti vērā visi tvaicētie un saldētie dārzeņi/augļi/ogas, tiek pieņemts, ka meklē tieši svaigus dārzeņus/augļus/ogas
                 if kategorija.lower() in produkts["category_name_full_path"].lower() and "tvaicēti" not in produkts["category_name_full_path"].lower() and "saldēti" not in produkts["category_name_full_path"].lower() and "apstrādāti" not in produkts["category_name_full_path"].lower():
                         # print(produkts['units'][0]['price'])
                         # print(produkts)
@@ -108,7 +113,7 @@ def maxima_cena(ko_mekle, kategorija):
                         if(nosaukums_maxima[i-1].isnumeric() and nosaukums_maxima[i].isalpha()):
                             nosaukums_maxima = f'{nosaukums_maxima[:i]}-{nosaukums_maxima[i:]}'
                     saite_maxima = (f"https://www.barbora.lv/produkti/{nosaukums_maxima}")
-                    print(cena_maxima, mervien_maxima, saite_maxima)
+                    # print(cena_maxima, mervien_maxima, saite_maxima)
                         # kursors.execute(f"INSERT INTO preces (ID_prece, veikals, prece, cena, mervieniba) VALUES ({k}, 'maxima', '{ko_mekle}', '{cena_maxima}', '{mervien_maxima}');")
                         # print(k)
                         # k=+1
