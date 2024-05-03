@@ -2,7 +2,10 @@ import requests, PySimpleGUI as sg, json
 from bs4 import BeautifulSoup
 import ast
 import sqlite3
+import datetime
 
+datums_tagad = str(datetime.date.today())
+# print(c)
 
 kas_janomaina = ['ā', 'č', 'ē', 'ģ', 'ī', 'ķ', 'ļ', 'ņ', 'š', 'ū', 'ž', ' ', '.', ',', '+', '/']
 uz_ko_janomaina = ['a', 'c', 'e', 'g', 'i', 'k', 'l', 'n', 's', 'u', 'z', '-', '', '', '', '-']
@@ -128,7 +131,7 @@ def maxima_cena(ko_mekle, kategorija):
                                 if j.isnumeric():
                                     if "g" in nosaukums_maxima_list:
                                         cena_maxima = float(cena_maxima/float(j)*1000)
-                                        print(cena_maxima)
+                                        # print(cena_maxima)
                                         mervien_maxima = "kg"
 
                             return cena_maxima, mervien_maxima, saite_maxima
@@ -143,8 +146,8 @@ def maxima_cena(ko_mekle, kategorija):
 def main():
     savienojums = sqlite3.connect("dati.db")
     kursors=savienojums.cursor()
-    kursors.execute("CREATE TABLE IF NOT EXISTS maxima(ID_maxima INTEGER PRIMARY KEY UNIQUE, prece TEXT, cena REAL, mervieniba TEXT, hipersaite TEXT)")
-    kursors.execute("CREATE TABLE IF NOT EXISTS rimi(ID_rimi INTEGER PRIMARY KEY UNIQUE, prece TEXT, cena REAL, mervieniba TEXT, hipersaite TEXT)")
+    kursors.execute("CREATE TABLE IF NOT EXISTS maxima(ID_maxima INTEGER PRIMARY KEY UNIQUE, prece TEXT, cena REAL, mervieniba TEXT, hipersaite TEXT, datums TEXT)")
+    kursors.execute("CREATE TABLE IF NOT EXISTS rimi(ID_rimi INTEGER PRIMARY KEY UNIQUE, prece TEXT, cena REAL, mervieniba TEXT, hipersaite TEXT, datums TEXT)")
     # atrod datu bāzes pēdējā ievada ID
     kursors.execute("SELECT max(ID_maxima) FROM maxima")
     ID_maxima = kursors.fetchone()[0]
@@ -186,13 +189,18 @@ def main():
                     cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
                     # ja cena nav nulle, tad neievieto datubāzē
                     if cena_rimi!=0:
-                        kursors.execute("INSERT INTO rimi(ID_rimi, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_rimi, str(values['-INPUT-']).lower(), cena_rimi, mervien_rimi, hipersaite_rimi))
+                        kursors.execute("INSERT INTO rimi(ID_rimi, prece, cena, mervieniba, hipersaite, datums) VALUES (?, ?, ?, ?, ?, ?)", (ID_rimi, str(values['-INPUT-']).lower(), cena_rimi, mervien_rimi, hipersaite_rimi, datums_tagad))
                         ID_rimi+=1
                 # ja tomēr tika atrasta, tad paņem datus no datu bāzes
                 else:
                     # print((values['-INPUT-']))
-                    kursors.execute("SELECT cena, mervieniba, hipersaite FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()])
-                    cena_rimi, mervien_rimi, hipersaite_rimi = kursors.fetchone()
+                    kursors.execute("SELECT cena, mervieniba, hipersaite, datums FROM rimi WHERE prece = ?", [str(values['-INPUT-']).lower()])
+                    cena_rimi, mervien_rimi, hipersaite_rimi, ievietosanas_datums = kursors.fetchone()
+                    # ja ievietotais datums nav šodienas datums, tad atkal meklē, jo varbūt ir mainījusies cena vai pieejamība
+                    if ievietosanas_datums != datums_tagad:
+                        cena_rimi, mervien_rimi, hipersaite_rimi = rimi_cena(values['-INPUT-'], kategorijas_rimi_id)
+                        kursors.execute("UPDATE rimi SET cena = ?, mervieniba = ?, hipersaite = ?, datums = ? WHERE prece = ?", (cena_rimi, mervien_rimi, hipersaite_rimi, datums_tagad, str(values['-INPUT-']).lower()))
+
                 # preces meklēšana un ievietošana Maxima datubāzē, ja tā vēl nav tur
                 if kursors.execute("SELECT cena FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()]).fetchone() == None:
                     # print("nav maxima datubāzē")
@@ -206,12 +214,17 @@ def main():
                         mervien_maxima = "N/A"
                         hipersaite_maxima = "nepastāv"
                     if cena_maxima!=0:
-                        kursors.execute("INSERT INTO maxima(ID_maxima, prece, cena, mervieniba, hipersaite) VALUES (?, ?, ?, ?, ?)", (ID_maxima, str(values['-INPUT-']).lower(), cena_maxima, mervien_maxima, hipersaite_maxima))
+                        kursors.execute("INSERT INTO maxima(ID_maxima, prece, cena, mervieniba, hipersaite, datums) VALUES (?, ?, ?, ?, ?, ?)", (ID_maxima, str(values['-INPUT-']).lower(), cena_maxima, mervien_maxima, hipersaite_maxima, datums_tagad))
                         ID_maxima+=1
                 # ja tomēr tika atrasta, tad paņem datus no datu bāzes
                 else:
-                    kursors.execute("SELECT cena, mervieniba, hipersaite FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()])
-                    cena_maxima, mervien_maxima, hipersaite_maxima = kursors.fetchone()
+                    kursors.execute("SELECT cena, mervieniba, hipersaite, datums FROM maxima WHERE prece = ?", [str(values['-INPUT-']).lower()])
+                    cena_maxima, mervien_maxima, hipersaite_maxima, ievietosanas_datums = kursors.fetchone()
+                    if ievietosanas_datums != datums_tagad:
+                        # print (ievietosanas_datums, datums_tagad)
+                        cena_maxima, mervien_maxima, hipersaite_maxima = maxima_cena(values['-INPUT-'], kategorijas_maxima_id)
+                        kursors.execute("UPDATE maxima SET cena = ?, mervieniba = ?, hipersaite = ?, datums = ? WHERE prece = ?", (cena_maxima, mervien_maxima, hipersaite_maxima, datums_tagad, str(values['-INPUT-']).lower()))
+
                 # print(cena_rimi, mervien_rimi, hipersaite_rimi)
                 # print(cena_maxima, mervien_maxima, hipersaite_maxima)
                 # print(ID_maxima, ID_rimi)
@@ -220,6 +233,7 @@ def main():
                 # datu izvade saskarsnē
                 window['-OUTPUT_RIMI-'].update(value = f'{cena_rimi*valutas_kurss:.2f} {valutas_zime}/{mervien_rimi}')
                 window['-SAITE_RIMI-'].update(value = hipersaite_rimi)
+                # print(cena_maxima)
                 window['-OUTPUT_MAXIMA-'].update(value = f'{cena_maxima*valutas_kurss:.2f} {valutas_zime}/{mervien_maxima}')
                 window['-SAITE_MAXIMA-'].update(value = hipersaite_maxima)
                 if cena_rimi == 0 and cena_maxima == 0:
